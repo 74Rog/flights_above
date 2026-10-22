@@ -20,7 +20,7 @@ to pay**:
 
 | Purpose | Source | Cost |
 |---|---|---|
-| Live aircraft positions | [adsb.lol](https://adsb.lol) → falls back to [airplanes.live](https://airplanes.live) | Free, no key |
+| Live aircraft positions | [adsb.fi](https://opendata.adsb.fi)  | Free, no key |
 | Departure / arrival airports | [adsbdb.com](https://www.adsbdb.com) → falls back to [hexdb.io](https://hexdb.io) | Free, no key |
 
 Two route sources are tried in turn, so far fewer flights end up without a route.
