@@ -17,7 +17,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
-    ADSB_POINT_BASES,
+    ADSB_POINT_BASE,
     ADSBDB_CALLSIGN_URL,
     CONF_COUNT,
     CONF_RADIUS,
@@ -350,39 +350,59 @@ class FlightsAboveCoordinator(DataUpdateCoordinator):
             self._history = {f["hex"]: f for f in flights}
         return flights[: self.count]
 
+    
     async def _fetch_aircraft(self) -> list[dict]:
-        """Query the ADS-B point endpoints until one succeeds."""
-        radius_nm = min(int(math.ceil(self.radius_km / KM_PER_NM)), MAX_RADIUS_NM)
+        """Query ADSB.fi for aircraft near the configured location."""
+        radius_nm = min(
+            int(math.ceil(self.radius_km / KM_PER_NM)),
+            MAX_RADIUS_NM,
+        )
         radius_nm = max(radius_nm, 1)
-        headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
-        last_error: Exception | None = None
 
-        for base in ADSB_POINT_BASES:
-            url = f"{base}/{self.latitude}/{self.longitude}/{radius_nm}"
-            try:
-                async with asyncio.timeout(REQUEST_TIMEOUT):
-                    resp = await self._session.get(url, headers=headers)
+        url = (
+            f"{ADSB_POINT_BASE}/{self.latitude}"
+            f"/lon/{self.longitude}/dist/{radius_nm}"
+        )
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json",
+        }
+
+        try:
+            async with asyncio.timeout(REQUEST_TIMEOUT):
+                async with self._session.get(
+                    url, headers=headers
+                ) as resp:
                     if resp.status != 200:
-                        last_error = UpdateFailed(f"{url} returned HTTP {resp.status}")
-                        continue
+                        raise UpdateFailed(
+                            f"ADSB.fi returned HTTP {resp.status}"
+                        )
+
                     payload = await resp.json(content_type=None)
-            except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-                last_error = err
-                continue
 
-            if not isinstance(payload, dict):
-                last_error = UpdateFailed(f"{url} returned a non-object body")
-                continue
-            aircraft = payload.get("ac") or payload.get("aircraft") or []
-            if not isinstance(aircraft, list):
-                last_error = UpdateFailed(f"{url} returned an unexpected shape")
-                continue
-            # Only keep dict records, and cap how many we will process.
-            return [ac for ac in aircraft if isinstance(ac, dict)][
-                :MAX_AIRCRAFT_PER_UPDATE
-            ]
+        except UpdateFailed:
+            raise
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as err:
+            raise UpdateFailed(
+                f"ADSB.fi request failed: {err}"
+            ) from err
 
-        raise UpdateFailed(f"No ADS-B source responded: {last_error}")
+        if not isinstance(payload, dict):
+            raise UpdateFailed(
+                "ADSB.fi returned a non-object response"
+            )
+
+        aircraft = payload.get("ac") or payload.get("aircraft") or []
+
+        if not isinstance(aircraft, list):
+            raise UpdateFailed(
+                "ADSB.fi returned an unexpected response structure"
+            )
+
+        return [
+            ac for ac in aircraft if isinstance(ac, dict)
+        ][:MAX_AIRCRAFT_PER_UPDATE]
+
 
     async def _build_flight(self, ac: dict, now: float) -> dict | None:
         """Turn one raw aircraft record into an enriched flight dict."""
