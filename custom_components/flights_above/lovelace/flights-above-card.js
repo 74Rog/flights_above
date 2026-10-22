@@ -462,7 +462,7 @@ class FlightsAboveCard extends HTMLElement {
       .radar .hit { fill: transparent; cursor: pointer; }
       .radar .sweep {
         transform-box: view-box; transform-origin: 100px 100px;
-        animation: fa-sweep 1.8s linear 1 forwards; pointer-events: none;
+        animation: fa-sweep 4s linear infinite;
       }
       .radar .sweep line {
         stroke: var(--primary-color); stroke-width: 2; stroke-linecap: round;
@@ -472,9 +472,11 @@ class FlightsAboveCard extends HTMLElement {
         from { transform: rotate(0deg); opacity: 1; }
         to { transform: rotate(360deg); opacity: 0; }
       }
+	  /*
       @media (prefers-reduced-motion: reduce) {
         .radar .sweep { animation: none; opacity: 0; }
       }
+	  */
       .radar-caption {
         margin-top: 12px; font-size: 0.75rem; color: var(--secondary-text-color);
       }
