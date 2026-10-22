@@ -35,14 +35,11 @@ ROUTE_MISS_TTL = 3600  # 1 hour
 # Data sources (all free, no API key required).
 # Position sources are tried in order until one responds successfully.
 # Both use the same path shape: <base>/{lat}/{lon}/{radius_in_nautical_miles}
-ADSB_POINT_BASES = [
-    "https://api.adsb.lol/v2/point",
-    "https://api.airplanes.live/v2/point",
-]
+ADSB_POINT_BASE = "https://opendata.adsb.fi/api/v2/lat"
 # Route / airport lookup by callsign.
 ADSBDB_CALLSIGN_URL = "https://api.adsbdb.com/v0/callsign/"
 
-ATTRIBUTION = "Live data from adsb.lol / airplanes.live, routes from adsbdb.com"
+ATTRIBUTION = "Live data from ADSB.fi, routes from adsbdb.com"
 
 USER_AGENT = "home-assistant-flights-above/1.0"
 REQUEST_TIMEOUT = 25  # seconds
