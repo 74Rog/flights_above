@@ -62,7 +62,12 @@ class FlightsAboveCard extends HTMLElement {
     const stamp = `${dataStamp}|${this._selected || ""}`;
     if (stamp === this._stamp) return;
 
-    this._sweep = Boolean(dataStamp) && dataStamp !== this._dataStamp;
+    // Start (or restart) the radar sweep when fresh data arrives. It then keeps
+    // running across selection re-renders instead of being switched off.
+    if (Boolean(dataStamp) && dataStamp !== this._dataStamp) {
+      this._sweep = true;
+      this._sweepStart = performance.now();
+    }
     this._dataStamp = dataStamp;
     this._stamp = stamp;
     this._render();
@@ -206,6 +211,10 @@ class FlightsAboveCard extends HTMLElement {
     if (!radius) return "";
 
     const R = 86, cx = 100, cy = 100;
+    // Resume the 4s sweep from where it was, since re-rendering replaces the DOM.
+    const sweepElapsed = this._sweepStart
+      ? ((performance.now() - this._sweepStart) / 1000) % 4
+      : 0;
     const showLabels = blips.length > 0 && blips.length <= 6;
     const marks = blips
       .map((b) => {
@@ -249,7 +258,7 @@ class FlightsAboveCard extends HTMLElement {
           <text x="4" y="103" text-anchor="start" class="dir">W</text>
           ${
             this._sweep
-              ? `<g class="sweep">
+              ? `<g class="sweep" style="animation-delay:-${sweepElapsed.toFixed(2)}s">
                    <path class="sweep-wedge" d="M100,100 L100,14 A86,86 0 0,1 143,25.5 Z"/>
                    <line x1="100" y1="100" x2="100" y2="14"/>
                  </g>`
@@ -351,9 +360,6 @@ class FlightsAboveCard extends HTMLElement {
     this.shadowRoot.querySelectorAll(".hit").forEach((el) => {
       el.addEventListener("click", () => this._select(el.getAttribute("data-cs")));
     });
-
-    // The sweep plays once per data refresh, not on selection re-renders.
-    this._sweep = false;
   }
 
   _styles() {
