@@ -4,11 +4,14 @@
  * Dependency-free custom element; works when added as a dashboard resource.
  */
 
-const CARD_VERSION = "1.0.4";
+const CARD_VERSION = "1.0.5";
+
+const PLANE_PATH =
+  "M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z";
 
 const PLANE_SVG = `
 <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-  <path fill="currentColor" d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/>
+  <path fill="currentColor" d="${PLANE_PATH}"/>
 </svg>`;
 
 // Escape any value coming from sensor attributes (which originate from a
@@ -213,19 +216,18 @@ class FlightsAboveCard extends HTMLElement {
         const y = cy - d * Math.cos(th);
         const selected = this._selected && b.callsign === this._selected;
 
-        // Short vector pointing where the aircraft is heading.
-        let track = "";
+        // Plane icon rotated to the aircraft's heading (0° = north / up).
         const hd = Number(b.heading);
-        if (b.heading !== null && b.heading !== undefined && !isNaN(hd)) {
-          const hr = (hd * Math.PI) / 180;
-          const x2 = x + 12 * Math.sin(hr);
-          const y2 = y - 12 * Math.cos(hr);
-          track = `<line x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="heading ${selected ? "sel" : ""}"/>`;
-        }
+        const rot =
+          b.heading !== null && b.heading !== undefined && !isNaN(hd) ? hd : 0;
+        const scale = selected ? 0.9 : 0.7;
+        const plane = `<path d="${PLANE_PATH}" class="blip ${selected ? "sel" : ""}"
+          transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot}) scale(${scale}) translate(-12 -12)"/>`;
+
         const label = showLabels
-          ? `<text x="${(x + 8).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" class="blip-label ${selected ? "sel" : ""}">${esc(b.callsign)}</text>`
+          ? `<text x="${(x + 10).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" class="blip-label ${selected ? "sel" : ""}">${esc(b.callsign)}</text>`
           : "";
-        return `${track}<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${selected ? 6 : 4}" class="blip ${selected ? "sel" : ""}"/>${label}<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13" class="hit" data-cs="${esc(b.callsign)}"/>`;
+        return `${plane}${label}<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13" class="hit" data-cs="${esc(b.callsign)}"/>`;
       })
       .join("");
 
@@ -453,10 +455,6 @@ class FlightsAboveCard extends HTMLElement {
       .radar .home { fill: var(--primary-text-color); }
       .radar .blip { fill: var(--primary-color); }
       .radar .blip.sel { fill: var(--primary-text-color); }
-      .radar .heading {
-        stroke: var(--primary-color); stroke-width: 2; stroke-linecap: round;
-      }
-      .radar .heading.sel { stroke: var(--primary-text-color); }
       .radar .blip-label { fill: var(--secondary-text-color); font-size: 9px; }
       .radar .blip-label.sel { fill: var(--primary-text-color); font-weight: 700; }
       .radar .hit { fill: transparent; cursor: pointer; }
